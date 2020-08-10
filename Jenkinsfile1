@@ -1,0 +1,51 @@
+try{
+node
+{
+stage('Git Checkout') {
+       git credentialsId: '123', url: 'https://github.com/shahataaz/my-app'
+                    }
+stage ('Code Build') {
+        sh label: '', script: 'mvn clean package'
+                     }
+
+stage ('Rename Package'){
+        sh label: '', script: 'mv target/*.war target/myweb.war'
+                        }
+stage ('Dev-Deploy'){
+        sshagent(['ITG']){
+        sh label: '', script: 'ssh ec2-user@13.232.169.237 rm -rf /opt/tomcat8/webapps/myweb*'
+        sh label: '', script: 'scp target/myweb.war ec2-user@13.232.169.237:/opt/tomcat8/webapps/' 
+        sh label: '', script: 'ssh ec2-user@13.232.169.237 /opt/tomcat8/bin/startup.sh'
+                     }
+
+body_msg =''' JOb Sucess ''' +  " $JOB_URL "  + " Thank MFI Team "
+
+stage ('EmailNotification') {
+        mail bcc: '', 
+        body: body_msg, 
+        cc: 'shahataazd@gmail.com', 
+        from: '', 
+        replyTo: '', 
+        subject: 'Job Sucess', 
+        to: 'subbireddy0115@gmail.com'
+                              }
+stage ('Slack Notificaiton'){                              
+        slackSend channel: 'devopsteam', color: 'good', 
+        message: "job - ${env.JOB_NAME}, completed sucessfully and build URL is ${env.BUILD_URL}", 
+        teamDomain: 'mfi-org', 
+        tokenCredentialId: '45c5ddd4-d213-444a-a85d-369d676c57d2', 
+        username: 'subbireddy'
+
+}
+}
+}
+} catch(error) {
+    slackSend channel: 'devopsteam', color: 'danger', 
+        message: "job - ${env.JOB_NAME}, completed unsucessfully and build URL is ${env.BUILD_URL}", 
+        teamDomain: 'mfi-org', 
+        tokenCredentialId: '45c5ddd4-d213-444a-a85d-369d676c57d2', 
+        username: 'subbireddy'
+        error 'Something rong with job'
+}
+ 
+ 
